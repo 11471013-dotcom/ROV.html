@@ -116,7 +116,7 @@
                 <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                     <h2 class="text-slate-800 font-bold text-base mb-4 flex items-start">
                         <span class="bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2 mt-0.5 flex-shrink-0">2</span>
-                        <span>水的三態中，固態稱為什麼？</span>
+                        <span>水的三態中，固態稱術為什麼？</span>
                     </h2>
                     <div class="grid grid-cols-1 gap-3">
                         <label class="relative cursor-pointer">
@@ -187,7 +187,7 @@
 
                 <!-- 警告訊息 -->
                 <div class="bg-blue-50 text-blue-800 p-3.5 rounded-xl text-xs mb-5 leading-relaxed">
-                    <strong>💡 教學指引：</strong>請將您的 Google Apps Script (GAS) 部署後的網頁應用程式 (Web App) 網址貼在下方，成績就會自動上傳到您的試算表。若未設定，測驗依然可在本機離線執行並於下方檢視。
+                    <strong>💡 教學指引：</strong>此測驗已內嵌預設的 Google Apps Script 雲端試算表網址。若您需要串接別的試算表，可在下方貼上您的新 Web App 網址。
                 </div>
 
                 <div class="space-y-4">
@@ -201,7 +201,7 @@
                     <!-- 本地成績暫存備用 -->
                     <div>
                         <div class="flex justify-between items-center mb-2">
-                            <label class="block text-slate-700 font-bold text-sm">💾 本地離線成績備份紀錄：</label>
+                            <label class="block text-slate-700 font-bold text-sm">💾 本地作答備份紀錄（防止網路斷線）：</label>
                             <button onclick="clearHistory()" class="text-xs text-red-500 hover:text-red-700 font-bold">清除紀錄</button>
                         </div>
                         <div class="border border-slate-100 rounded-xl bg-slate-50 p-3 max-h-48 overflow-y-auto">
@@ -238,20 +238,41 @@
 
     <!-- 頁尾宣告 -->
     <div class="mt-6 text-center text-xs text-slate-400 font-medium">
-        Made with ❤️ for automatic scoring | Version 1.1
+        Made with ❤️ for automatic scoring | Version 1.2
     </div>
 
     <script>
         // 老師提供的預設雲端 Web App 網址
         const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyCNNhK9KQJ689WAaoVKTb0ognsHsZ_86cAejDUrNzf0rdBNFWyOIFsSC3NBqftMda89w/exec";
 
+        // 安全的瀏覽器儲存機制介面（即使在安全沙盒 Iframe 被阻擋，也能優雅降級運作，避免 JS 崩潰）
+        const safeStorage = {
+            memoryStore: {},
+            get(key) {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    console.warn("[⚠️ 安全警告] 瀏覽器 LocalStorage 被阻擋，改用記憶體儲存！", e);
+                    return this.memoryStore[key] || null;
+                }
+            },
+            set(key, value) {
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn("[⚠️ 安全警告] 瀏覽器 LocalStorage 寫入被阻擋，改用記憶體儲存！", e);
+                    this.memoryStore[key] = value;
+                }
+            }
+        };
+
         // 頁面初始化
         window.onload = function() {
-            // 從 LocalStorage 載入教師設定的 GAS 網址，若無則自動使用預設網址
-            let savedUrl = localStorage.getItem('gas_web_app_url');
-            if (!savedUrl) {
+            // 從 LocalStorage 安全載入教師設定的 GAS 網址，若無、或解析為空/無效字串，則自動強制使用預設網址
+            let savedUrl = safeStorage.get('gas_web_app_url');
+            if (!savedUrl || savedUrl.trim() === "" || savedUrl === "null" || savedUrl === "undefined") {
                 savedUrl = DEFAULT_GAS_URL;
-                localStorage.setItem('gas_web_app_url', savedUrl);
+                safeStorage.set('gas_web_app_url', savedUrl);
             }
             document.getElementById('gasUrlInput').value = savedUrl;
             updateHistoryTable();
@@ -263,7 +284,6 @@
             const alertMsg = document.getElementById('alertMsg');
             alertMsg.innerText = message;
             alertBox.classList.remove('hidden');
-            // 自動滾動到最上方看警告
             alertBox.scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -283,7 +303,9 @@
         // 儲存教師面板設定
         function saveTeacherSettings() {
             const urlInput = document.getElementById('gasUrlInput').value.trim();
-            localStorage.setItem('gas_web_app_url', urlInput || DEFAULT_GAS_URL);
+            const finalUrl = (urlInput && urlInput.startsWith("https://")) ? urlInput : DEFAULT_GAS_URL;
+            safeStorage.set('gas_web_app_url', finalUrl);
+            document.getElementById('gasUrlInput').value = finalUrl;
             toggleTeacherPanel();
             
             // 彈出成功提示
@@ -291,7 +313,7 @@
             originalBox.classList.remove('hidden');
             originalBox.classList.replace('bg-amber-50', 'bg-green-50');
             originalBox.classList.replace('border-amber-400', 'border-green-400');
-            document.getElementById('alertMsg').innerHTML = "<span class='text-green-800'>⚙️ 設定成功！成績會上傳到指定雲端。</span>";
+            document.getElementById('alertMsg').innerHTML = "<span class='text-green-800'>⚙️ 雲端設定更新成功！成績將傳送到指定雲端。</span>";
             setTimeout(() => {
                 originalBox.classList.add('hidden');
                 originalBox.classList.replace('bg-green-50', 'bg-amber-50');
@@ -384,10 +406,8 @@
         function triggerConfetti(mode) {
             if (typeof confetti === 'function') {
                 if (mode === 2) {
-                    // 強烈灑花
                     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
                 } else {
-                    // 輕微灑花
                     confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
                 }
             }
@@ -396,8 +416,13 @@
         // 上傳分數到 Google Apps Script
         function uploadScore(name, score) {
             const syncStatus = document.getElementById('syncStatus');
-            const gasUrl = localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
             const timestamp = new Date().toLocaleString('zh-TW');
+
+            // 💡 雙重防護安全校正：若讀取出的 url 無效、非 https，則絕對強制退回 DEFAULT_GAS_URL，100% 確保連動
+            let gasUrl = safeStorage.get('gas_web_app_url');
+            if (!gasUrl || gasUrl.trim() === "" || gasUrl === "null" || gasUrl === "undefined" || !gasUrl.startsWith("https://")) {
+                gasUrl = DEFAULT_GAS_URL;
+            }
 
             // 建立一筆記錄準備存進本地備份
             const record = {
@@ -407,9 +432,9 @@
                 synced: false
             };
 
-            // 若有設定，開始進行網路發送
+            // 開始進行網路發送
             document.getElementById('loadingSpinner').classList.remove('hidden');
-            document.getElementById('btnText').innerText = "上傳中...";
+            document.getElementById('btnText').innerText = "成績同步中...";
 
             // 使用 exponential backoff 進行重試與容錯處理
             let retryCount = 0;
@@ -419,7 +444,7 @@
                 fetch(gasUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain;charset=utf-8' // GAS doPost 對於 text/plain 支援最佳且無 CORS 阻礙
+                        'Content-Type': 'text/plain;charset=utf-8' // GAS doPost 的最佳格式，完美繞過 CORS
                     },
                     body: JSON.stringify({
                         name: name,
@@ -427,7 +452,7 @@
                     })
                 })
                 .then(response => {
-                    if (!response.ok) throw new Error('伺服器未正確回應');
+                    if (!response.ok) throw new Error('雲端無回應');
                     return response.json();
                 })
                 .then(data => {
@@ -436,7 +461,7 @@
                         syncStatus.innerHTML = "✅ 成績已同步上傳至 Google 雲端試算表！";
                         record.synced = true;
                     } else {
-                        throw new Error(data.message || '雲端資料寫入異常');
+                        throw new Error(data.message || '寫入異常');
                     }
                 })
                 .catch(error => {
@@ -449,7 +474,7 @@
                     }
                 })
                 .finally(() => {
-                    // 更新本地端歷史紀錄，不管成功失敗都存起來防止漏記
+                    // 不管最後成功還是失敗，都寫入一筆到本機作答歷史，供老師當場查驗
                     saveToHistory(record);
                     document.getElementById('loadingSpinner').classList.add('hidden');
                     document.getElementById('btnText').innerText = "🚀 送出並看成績";
@@ -460,17 +485,27 @@
             sendRequest(1000);
         }
 
-        // 本地紀錄管理機制 (防斷網神隊友)
+        // 本地紀錄管理機制
         function saveToHistory(record) {
-            let history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            let history = [];
+            try {
+                history = JSON.parse(safeStorage.get('quiz_history') || '[]');
+            } catch (e) {
+                history = [];
+            }
             history.unshift(record); // 最新一筆放最前面
-            localStorage.setItem('quiz_history', JSON.stringify(history));
+            safeStorage.set('quiz_history', JSON.stringify(history));
             updateHistoryTable();
         }
 
         function updateHistoryTable() {
             const tableBody = document.getElementById('historyTableBody');
-            const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            let history = [];
+            try {
+                history = JSON.parse(safeStorage.get('quiz_history') || '[]');
+            } catch (e) {
+                history = [];
+            }
 
             if (history.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">尚無作答紀錄</td></tr>`;
@@ -494,7 +529,7 @@
 
         function clearHistory() {
             if (confirm("您確定要清除本地瀏覽器的所有歷史成績紀錄嗎？（清除後無法復原）")) {
-                localStorage.removeItem('quiz_history');
+                safeStorage.set('quiz_history', '[]');
                 updateHistoryTable();
             }
         }
