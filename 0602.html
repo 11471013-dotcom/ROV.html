@@ -238,17 +238,22 @@
 
     <!-- 頁尾宣告 -->
     <div class="mt-6 text-center text-xs text-slate-400 font-medium">
-        Made with ❤️ for automatic scoring | Version 1.0
+        Made with ❤️ for automatic scoring | Version 1.1
     </div>
 
     <script>
+        // 老師提供的預設雲端 Web App 網址
+        const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyCNNhK9KQJ689WAaoVKTb0ognsHsZ_86cAejDUrNzf0rdBNFWyOIFsSC3NBqftMda89w/exec";
+
         // 頁面初始化
         window.onload = function() {
-            // 從 LocalStorage 載入教師設定的 GAS 網址
-            const savedUrl = localStorage.getItem('gas_web_app_url');
-            if (savedUrl) {
-                document.getElementById('gasUrlInput').value = savedUrl;
+            // 從 LocalStorage 載入教師設定的 GAS 網址，若無則自動使用預設網址
+            let savedUrl = localStorage.getItem('gas_web_app_url');
+            if (!savedUrl) {
+                savedUrl = DEFAULT_GAS_URL;
+                localStorage.setItem('gas_web_app_url', savedUrl);
             }
+            document.getElementById('gasUrlInput').value = savedUrl;
             updateHistoryTable();
         };
 
@@ -278,7 +283,7 @@
         // 儲存教師面板設定
         function saveTeacherSettings() {
             const urlInput = document.getElementById('gasUrlInput').value.trim();
-            localStorage.setItem('gas_web_app_url', urlInput);
+            localStorage.setItem('gas_web_app_url', urlInput || DEFAULT_GAS_URL);
             toggleTeacherPanel();
             
             // 彈出成功提示
@@ -391,7 +396,7 @@
         // 上傳分數到 Google Apps Script
         function uploadScore(name, score) {
             const syncStatus = document.getElementById('syncStatus');
-            const gasUrl = localStorage.getItem('gas_web_app_url');
+            const gasUrl = localStorage.getItem('gas_web_app_url') || DEFAULT_GAS_URL;
             const timestamp = new Date().toLocaleString('zh-TW');
 
             // 建立一筆記錄準備存進本地備份
@@ -401,16 +406,6 @@
                 score: score,
                 synced: false
             };
-
-            // 如果老師還沒設定 GAS 連結
-            if (!gasUrl) {
-                syncStatus.className = "text-sm font-bold text-amber-500 flex items-center justify-center";
-                syncStatus.innerHTML = "⚠️ 尚未設定 Google 雲端網址，成績已記錄在教師主機。";
-                
-                // 存入本地 LocalStorage
-                saveToHistory(record);
-                return;
-            }
 
             // 若有設定，開始進行網路發送
             document.getElementById('loadingSpinner').classList.remove('hidden');
