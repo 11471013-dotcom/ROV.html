@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 紙電路實作挑戰學習單 ⚡</title>
+    <!-- 載入 Tailwind CSS 提供現代且高質感的排版設計 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Canvas-Confetti 讓成功發光的學生有慶祝碎紙效果 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        /* 隱藏原生 Radio 按鈕，改用自訂卡片樣式 */
+        .custom-radio:checked + .radio-card {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .radio-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 發光特效動畫 */
+        @keyframes neonGlow {
+            0%, 100% { filter: drop-shadow(0 0 2px var(--glow-color)) drop-shadow(0 0 8px var(--glow-color)); }
+            50% { filter: drop-shadow(0 0 6px var(--glow-color)) drop-shadow(0 0 18px var(--glow-color)); }
+        }
+
+        .led-glowing {
+            animation: neonGlow 1.5s infinite alternate;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4 flex flex-col items-center justify-center relative">
+
+    <!-- 背景科技裝飾 -->
+    <div class="absolute top-10 left-10 text-slate-400/10 text-7xl hidden md:block select-none">💡</div>
+    <div class="absolute bottom-10 right-10 text-slate-400/10 text-7xl hidden md:block select-none">🔋</div>
+    <div class="absolute top-24 right-20 text-slate-400/10 text-7xl hidden md:block select-none">🔌</div>
+
+    <!-- 教師設定入口 (齒輪) -->
+    <div class="absolute top-4 right-4 z-50">
+        <button onclick="toggleTeacherPanel()" class="bg-white hover:bg-slate-100 text-slate-600 p-2.5 rounded-full shadow-md transition-all duration-200 focus:outline-none border border-slate-200 flex items-center justify-center">
+            <!-- 齒輪 SVG -->
+            <svg class="w-6 h-6 animate-[spin_10s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative z-10">
+        
+        <!-- 卡片頂部裝飾：科技感雙色條 -->
+        <div class="h-4 bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400"></div>
+
+        <!-- 內容區 -->
+        <div class="p-6 md:p-8">
+            <!-- 標題 -->
+            <div class="text-center mb-6">
+                <span class="inline-block bg-amber-100 text-amber-700 font-bold px-4 py-1.5 rounded-full text-xs mb-2 tracking-wider">生活科技 ✕ 電路實作</span>
+                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">⚡ 紙電路實作挑戰學習單</h1>
+                <p class="text-slate-500 mt-1.5">動手貼上銅箔貼紙，連接電池與 LED，點亮你的創意吧！</p>
+            </div>
+
+            <!-- 互動式電路圖動畫 -->
+            <div class="bg-slate-900 rounded-2xl p-4 mb-6 relative overflow-hidden flex flex-col items-center justify-center border-2 border-slate-800">
+                <div class="absolute top-2 left-3 text-[10px] font-mono text-slate-500">DYNAMIC CIRCUIT PREVIEW</div>
+                
+                <!-- 互動式 SVG 電路 -->
+                <svg class="w-full max-w-[280px] h-32" viewBox="0 0 280 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 銅箔導體線路 (左/負極) -->
+                    <path d="M 40 90 L 40 30 L 110 30" stroke="#d97706" stroke-width="6" stroke-linecap="round"/>
+                    <!-- 銅箔導體線路 (右/正極) -->
+                    <path d="M 240 90 L 240 30 L 170 30" stroke="#d97706" stroke-width="6" stroke-linecap="round"/>
+                    
+                    <!-- 3V 鈕扣電池 -->
+                    <g transform="translate(20, 75)">
+                        <rect width="40" height="25" rx="5" fill="#94a3b8" stroke="#cbd5e1" stroke-width="2"/>
+                        <circle cx="20" cy="12" r="6" fill="#64748b"/>
+                        <text x="20" y="16" fill="white" font-size="10" font-weight="bold" text-anchor="middle">3V</text>
+                        <text x="8" y="22" fill="#e2e8f0" font-size="8" font-weight="bold">-</text>
+                    </g>
+                    
+                    <!-- 迴路開關示意 (迴紋針/折角) -->
+                    <g id="circuitSwitch" transform="translate(195, 80)">
+                        <!-- 電池正極接觸區 -->
+                        <rect x="25" y="0" width="40" height="20" rx="3" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+                        <text x="45" y="13" fill="#334155" font-size="9" font-weight="bold" text-anchor="middle">+</text>
+                        <!-- 壓下開關的箭頭 -->
+                        <path id="switchArrow" d="M 10 -15 L 10 -5 M 7 -8 L 10 -5 L 13 -8" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-bounce"/>
+                        <!-- 開關導片 -->
+                        <path id="switchContact" d="M -15 10 L 15 -10" stroke="#d97706" stroke-width="5" stroke-linecap="round"/>
+                    </g>
+
+                    <!-- LED 本體 -->
+                    <g transform="translate(120, 10)">
+                        <!-- 支腳 -->
+                        <line x1="5" y1="20" x2="20" y2="20" stroke="#94a3b8" stroke-width="3"/>
+                        <line x1="35" y1="20" x2="20" y2="20" stroke="#94a3b8" stroke-width="3"/>
+                        <!-- LED 燈泡 -->
+                        <path d="M 10 25 C 10 10 30 10 30 25 Z" fill="#475569" id="ledBulb" class="transition-all duration-300"/>
+                        <!-- LED 底座座環 -->
+                        <rect x="8" y="24" width="24" height="4" rx="1" fill="#334155"/>
+                    </g>
+                </svg>
+
+                <div class="mt-2 text-xs text-slate-400 text-center flex items-center gap-1.5" id="circuitTip">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-600 block" id="circuitIndicator"></span>
+                    <span id="circuitStatusText">電路斷路中，請填寫下方學習單...</span>
+                </div>
+            </div>
+
+            <!-- 自訂警告訊息 (替代原生的 alert) -->
+            <div id="alertBox" class="hidden mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-xl transition-all duration-300">
+                <div class="flex items-center">
+                    <span class="text-amber-500 mr-2 text-xl">⚠️</span>
+                    <p id="alertMsg" class="text-sm font-medium text-amber-800"></p>
+                </div>
+            </div>
+
+            <form id="quizForm" onsubmit="event.preventDefault();" class="space-y-6">
+                <!-- 欄位：班級座號與姓名 (雙欄排版) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 班級座號 -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 focus-within:ring-2 focus-within:ring-amber-400 transition-all">
+                        <label for="classSeat" class="block text-slate-700 font-bold text-sm mb-1.5 flex items-center">
+                            <span class="text-lg mr-1.5">🏫</span> 班級座號：
+                        </label>
+                        <input type="number" id="classSeat" required min="10101" max="99999"
+                               class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none text-slate-800 placeholder-slate-400 font-bold transition-colors"
+                               placeholder="填入五碼，如 80215">
+                    </div>
+
+                    <!-- 學生姓名 -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 focus-within:ring-2 focus-within:ring-amber-400 transition-all">
+                        <label for="studentName" class="block text-slate-700 font-bold text-sm mb-1.5 flex items-center">
+                            <span class="text-lg mr-1.5">👤</span> 學生姓名：
+                        </label>
+                        <input type="text" id="studentName" required
+                               class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none text-slate-800 placeholder-slate-400 font-bold transition-colors"
+                               placeholder="請輸入你的姓名">
+                    </div>
+                </div>
+
+                <!-- 選擇：LED 顏色 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h2 class="text-slate-800 font-bold text-base mb-3.5 flex items-center">
+                        <span class="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2">1</span>
+                        <span>你使用的 LED 是什麼顏色？</span>
+                    </h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="ledColor" value="紅色" class="sr-only custom-radio" onchange="updateCircuitPreview()" required>
+                            <div class="radio-card py-2.5 px-3 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm font-bold text-center hover:border-red-400 hover:bg-red-50/30">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 mr-1.5"></span>紅色
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="ledColor" value="綠色" class="sr-only custom-radio" onchange="updateCircuitPreview()">
+                            <div class="radio-card py-2.5 px-3 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm font-bold text-center hover:border-green-400 hover:bg-green-50/30">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>綠色
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="ledColor" value="藍色" class="sr-only custom-radio" onchange="updateCircuitPreview()">
+                            <div class="radio-card py-2.5 px-3 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm font-bold text-center hover:border-blue-400 hover:bg-blue-50/30">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span>藍色
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="ledColor" value="黃色" class="sr-only custom-radio" onchange="updateCircuitPreview()">
+                            <div class="radio-card py-2.5 px-3 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm font-bold text-center hover:border-yellow-400 hover:bg-yellow-50/30">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-yellow-500 mr-1.5"></span>黃色
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 選擇：是否成功發光 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h2 class="text-slate-800 font-bold text-base mb-3.5 flex items-center">
+                        <span class="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2">2</span>
+                        <span>你的電路順利成功發光了嗎？</span>
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="isLit" value="🎉 成功發光！" class="sr-only custom-radio" onchange="updateCircuitPreview()" required>
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-center hover:border-emerald-300">
+                                <div class="text-xl mb-1">🎉</div>
+                                <div class="text-sm text-emerald-600">成功發光！</div>
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="isLit" value="💡 微弱閃爍 / 接觸不良" class="sr-only custom-radio" onchange="updateCircuitPreview()">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-center hover:border-yellow-300">
+                                <div class="text-xl mb-1">⚡</div>
+                                <div class="text-sm text-amber-600">微弱/接觸不良</div>
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="isLit" value="❌ 無法發光，檢查中" class="sr-only custom-radio" onchange="updateCircuitPreview()">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-center hover:border-red-300">
+                                <div class="text-xl mb-1">🔍</div>
+                                <div class="text-sm text-red-600">無法發光</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 困難與反思 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h2 class="text-slate-800 font-bold text-base mb-2 flex items-center">
+                        <span class="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2">3</span>
+                        <span>困難與反思（選填）：</span>
+                    </h2>
+                    <p class="text-slate-400 text-xs mb-3">例如：你在實作中遇到什麼問題？（如：短路、銅箔貼錯、極性接反），最後是如何解決的呢？</p>
+                    <textarea id="reflection" rows="3"
+                              class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 text-slate-800 placeholder-slate-400 font-medium transition-colors"
+                              placeholder="一開始我的 LED 腳位接反了，翻轉電池後就亮了！..."></textarea>
+                </div>
+
+                <!-- 提交按鈕 -->
+                <button type="button" onclick="handleSubmit()" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-lg py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-[0.98] flex items-center justify-center">
+                    <span id="btnText">🚀 傳送紙電路挑戰紀錄</span>
+                    <!-- 載入中動畫 Spinner -->
+                    <svg id="loadingSpinner" class="hidden animate-spin ml-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- 結果與上傳狀態面板 (預設隱藏) -->
+            <div id="resultModal" class="hidden mt-8 border-2 border-dashed border-slate-200 p-6 rounded-2xl bg-slate-50 text-center animate-[fade-in_0.3s_ease-out]">
+                <div class="text-5xl mb-3" id="resultEmoji">🎉</div>
+                <h3 class="text-2xl font-black text-slate-800" id="resultScore">學習單填寫完成！</h3>
+                <p class="text-slate-600 font-medium mt-1.5" id="resultMessage">太棒了！資料正在與教室雲端進行同步...</p>
+                <div class="mt-4 p-3 bg-white rounded-xl inline-flex flex-col items-center border border-slate-100">
+                    <span id="syncStatus" class="text-sm font-bold text-amber-500 flex items-center">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping mr-2"></span>
+                        正在上傳學習單到 Google 試算表...
+                    </span>
+                </div>
+                <button onclick="restartQuiz()" class="mt-5 text-sm font-bold text-amber-600 hover:text-amber-800 transition-colors block mx-auto underline">
+                    🔄 幫下一位同學登記
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 教師設定面板 Drawer -->
+    <div id="teacherPanel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-[scale-up_0.2s_ease-out]">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-extrabold text-slate-800 flex items-center">
+                        <span class="mr-2">⚙️</span> 教師控制台
+                    </h3>
+                    <button onclick="toggleTeacherPanel()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+                </div>
+
+                <div class="bg-amber-50 text-amber-800 p-3.5 rounded-xl text-xs mb-5 leading-relaxed">
+                    <strong>💡 教師設定說明：</strong><br>
+                    此網頁已預設連結您提供的 Google 試算表。如果您需要更換其他班級的試算表，請在下方貼上新的 GAS Web App 部署網址。
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="gasUrlInput" class="block text-slate-700 font-bold text-sm mb-1.5">雲端 GAS Web App 網址：</label>
+                        <input type="text" id="gasUrlInput" 
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-amber-400 font-mono"
+                               placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+
+                    <!-- 本地作答紀錄備份 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-slate-700 font-bold text-sm">💾 本地作答備份（防斷網紀錄）：</label>
+                            <button onclick="clearHistory()" class="text-xs text-red-500 hover:text-red-700 font-bold">清除所有歷史</button>
+                        </div>
+                        <div class="border border-slate-100 rounded-xl bg-slate-50 p-3 max-h-48 overflow-y-auto">
+                            <table class="w-full text-xs text-left text-slate-600">
+                                <thead>
+                                    <tr class="border-b border-slate-200">
+                                        <th class="py-1">班級座號</th>
+                                        <th class="py-1">姓名</th>
+                                        <th class="py-1">發光狀況</th>
+                                        <th class="py-1 text-right">同步狀態</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <tr>
+                                        <td colspan="4" class="py-4 text-center text-slate-400">尚無上傳紀錄</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="toggleTeacherPanel()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors">
+                        關閉
+                    </button>
+                    <button onclick="saveTeacherSettings()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md">
+                        儲存並啟用設定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁尾宣告 -->
+    <div class="mt-6 text-center text-xs text-slate-400 font-medium">
+        Made with ⚡ for Paper Circuit Lab | Version 2.0
+    </div>
+
+    <script>
+        // 老師提供的預設雲端 Web App 網址
+        const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxbDKKuaMCpzPaAHm2z3Vqfex-7C1hGxYND3U-HerhGY8HacrnXtk6_bJqRWUx2gnM/exec";
+
+        // 安全儲存介面
+        const safeStorage = {
+            memoryStore: {},
+            get(key) {
+                try { return localStorage.getItem(key); } catch (e) { return this.memoryStore[key] || null; }
+            },
+            set(key, value) {
+                try { localStorage.setItem(key, value); } catch (e) { this.memoryStore[key] = value; }
+            }
+        };
+
+        // 初始化
+        window.onload = function() {
+            let savedUrl = safeStorage.get('gas_web_app_url');
+            if (!savedUrl || savedUrl.trim() === "" || savedUrl === "null" || savedUrl === "undefined") {
+                savedUrl = DEFAULT_GAS_URL;
+                safeStorage.set('gas_web_app_url', savedUrl);
+            }
+            document.getElementById('gasUrlInput').value = savedUrl;
+            updateHistoryTable();
+            updateCircuitPreview(); // 初始化電路預覽
+        };
+
+        // 自訂警告提示
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertBox');
+            const alertMsg = document.getElementById('alertMsg');
+            alertMsg.innerText = message;
+            alertBox.classList.remove('hidden');
+            alertBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').classList.add('hidden');
+        }
+
+        // 電路圖即時渲染更新
+        function updateCircuitPreview() {
+            const ledColorSelected = document.querySelector('input[name="ledColor"]:checked');
+            const isLitSelected = document.querySelector('input[name="isLit"]:checked');
+            
+            const ledBulb = document.getElementById('ledBulb');
+            const circuitSwitch = document.getElementById('circuitSwitch');
+            const switchContact = document.getElementById('switchContact');
+            const switchArrow = document.getElementById('switchArrow');
+            const indicator = document.getElementById('circuitIndicator');
+            const statusText = document.getElementById('circuitStatusText');
+
+            // 1. 判斷顏色設定 (對應 LED 發光色調與濾鏡)
+            let colorHex = "#475569"; // 預設熄滅灰色
+            let glowFilterColor = "rgba(255,255,255,0)";
+            
+            if (ledColorSelected) {
+                const colorVal = ledColorSelected.value;
+                if (colorVal === "紅色") { colorHex = "#f87171"; glowFilterColor = "rgba(239, 68, 68, 0.8)"; }
+                else if (colorVal === "綠色") { colorHex = "#34d399"; glowFilterColor = "rgba(16, 185, 129, 0.8)"; }
+                else if (colorVal === "藍色") { colorHex = "#60a5fa"; glowFilterColor = "rgba(59, 130, 246, 0.8)"; }
+                else if (colorVal === "黃色") { colorHex = "#fbbf24"; glowFilterColor = "rgba(245, 158, 11, 0.8)"; }
+            }
+
+            // 2. 判斷發光狀態並控制 SVG 動態
+            if (isLitSelected && ledColorSelected) {
+                const litVal = isLitSelected.value;
+                if (litVal === "🎉 成功發光！") {
+                    // 開關閉合
+                    switchContact.setAttribute("d", "M -15 10 L 15 10");
+                    switchArrow.classList.add("hidden");
+                    // 燈泡發光
+                    ledBulb.setAttribute("fill", colorHex);
+                    ledBulb.style.setProperty("--glow-color", glowFilterColor);
+                    ledBulb.classList.add("led-glowing");
+                    // 狀態欄變綠
+                    indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-ping";
+                    statusText.innerText = `電路通路！${ledColorSelected.value} LED 成功發光！🎉`;
+                } else if (litVal === "💡 微弱閃爍 / 接觸不良") {
+                    // 開關微閉合但有些隙縫
+                    switchContact.setAttribute("d", "M -15 10 L 12 5");
+                    switchArrow.classList.remove("hidden");
+                    // 燈泡微亮、不啟動強烈呼吸
+                    ledBulb.setAttribute("fill", colorHex);
+                    ledBulb.classList.remove("led-glowing");
+                    ledBulb.style.filter = `drop-shadow(0 0 3px ${glowFilterColor})`;
+                    // 狀態欄變黃
+                    indicator.className = "w-2.5 h-2.5 rounded-full bg-yellow-500 block";
+                    statusText.innerText = "電路接觸不良！有微弱電流，快調整銅箔接觸面！";
+                } else {
+                    // 無法發光
+                    switchContact.setAttribute("d", "M -15 10 L 15 -10");
+                    switchArrow.classList.remove("hidden");
+                    ledBulb.setAttribute("fill", "#475569");
+                    ledBulb.classList.remove("led-glowing");
+                    ledBulb.style.filter = "none";
+                    // 狀態欄變紅
+                    indicator.className = "w-2.5 h-2.5 rounded-full bg-red-500 block";
+                    statusText.innerText = "電路斷路！LED 沒有亮，請檢查腳位極性或斷點！";
+                }
+            } else {
+                // 尚未選擇完整
+                switchContact.setAttribute("d", "M -15 10 L 15 -10");
+                switchArrow.classList.remove("hidden");
+                ledBulb.setAttribute("fill", "#475569");
+                ledBulb.classList.remove("led-glowing");
+                ledBulb.style.filter = "none";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-slate-500 block";
+                statusText.innerText = "請填寫下方學習單，點亮你的紙電路！";
+            }
+        }
+
+        // 開關教師設定面板
+        function toggleTeacherPanel() {
+            const panel = document.getElementById('teacherPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                updateHistoryTable();
+            }
+        }
+
+        // 儲存教師面板設定
+        function saveTeacherSettings() {
+            const urlInput = document.getElementById('gasUrlInput').value.trim();
+            const finalUrl = (urlInput && urlInput.startsWith("https://")) ? urlInput : DEFAULT_GAS_URL;
+            safeStorage.set('gas_web_app_url', finalUrl);
+            document.getElementById('gasUrlInput').value = finalUrl;
+            toggleTeacherPanel();
+            
+            const originalBox = document.getElementById('alertBox');
+            originalBox.classList.remove('hidden');
+            originalBox.classList.replace('bg-amber-50', 'bg-green-50');
+            originalBox.classList.replace('border-amber-400', 'border-green-400');
+            document.getElementById('alertMsg').innerHTML = "<span class='text-green-800'>⚙️ 雲端後端網址儲存成功！已重新綁定。</span>";
+            setTimeout(() => {
+                originalBox.classList.add('hidden');
+                originalBox.classList.replace('bg-green-50', 'bg-amber-50');
+                originalBox.classList.replace('border-green-400', 'border-amber-400');
+            }, 3000);
+        }
+
+        // 處理測驗送出與計分
+        function handleSubmit() {
+            hideAlert();
+
+            const classSeat = document.getElementById('classSeat').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            const ledColorSelected = document.querySelector('input[name="ledColor"]:checked');
+            const isLitSelected = document.querySelector('input[name="isLit"]:checked');
+            const reflection = document.getElementById('reflection').value.trim();
+
+            // 1. 欄位驗證
+            if (!classSeat || classSeat.length !== 5) {
+                showAlert('請輸入正確的「五碼班級座號」，例如 80215！');
+                return;
+            }
+            if (!studentName) {
+                showAlert('請填寫學生姓名喔！');
+                return;
+            }
+            if (!ledColorSelected) {
+                showAlert('請勾選你所使用的 LED 顏色！');
+                return;
+            }
+            if (!isLitSelected) {
+                showAlert('請填寫你的 LED 是否成功發光！');
+                return;
+            }
+
+            // 2. 顯示結果面板
+            showResultPanel(studentName, isLitSelected.value);
+
+            // 3. 上傳資料
+            uploadScore(classSeat, studentName, ledColorSelected.value, isLitSelected.value, reflection);
+        }
+
+        // 顯示結果與灑花效果
+        function showResultPanel(name, litStatus) {
+            const form = document.getElementById('quizForm');
+            const resultModal = document.getElementById('resultModal');
+            const resultScore = document.getElementById('resultScore');
+            const resultEmoji = document.getElementById('resultEmoji');
+            const resultMessage = document.getElementById('resultMessage');
+
+            // 鎖定主表單輸入
+            form.querySelectorAll('input, textarea').forEach(input => input.disabled = true);
+            document.getElementById('submitBtn').disabled = true;
+
+            resultScore.innerText = `${name} 同學，學習單已提交！`;
+            
+            if (litStatus === "🎉 成功發光！") {
+                resultEmoji.innerText = "🎉";
+                resultMessage.innerText = "太完美了！你成功點亮了紙電路，科技實作力滿分！";
+                // 成功發光，放五彩拉炮
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+                }
+            } else if (litStatus === "💡 微弱閃爍 / 接觸不良") {
+                resultEmoji.innerText = "⚡";
+                resultMessage.innerText = "非常棒的探索！微小的閃爍代表你只差最後一步了，繼續調整線路！";
+            } else {
+                resultEmoji.innerText = "🔍";
+                resultMessage.innerText = "勝不驕敗不餒！Debug 是工程師最核心的能力，檢查一下線路並在下方反思吧！";
+            }
+
+            resultModal.classList.remove('hidden');
+            resultModal.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 上傳分數到 Google Apps Script
+        function uploadScore(classSeat, name, ledColor, isLit, reflection) {
+            const syncStatus = document.getElementById('syncStatus');
+            const timestamp = new Date().toLocaleString('zh-TW');
+
+            // 雙重防護安全校正
+            let gasUrl = safeStorage.get('gas_web_app_url');
+            if (!gasUrl || gasUrl.trim() === "" || gasUrl === "null" || gasUrl === "undefined" || !gasUrl.startsWith("https://")) {
+                gasUrl = DEFAULT_GAS_URL;
+            }
+
+            // 建立一筆記錄準備存進本地備份
+            const record = {
+                time: timestamp,
+                classSeat: classSeat,
+                name: name,
+                ledColor: ledColor,
+                isLit: isLit,
+                reflection: reflection,
+                synced: false
+            };
+
+            // 開始進行網路發送
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+            document.getElementById('btnText').innerText = "上傳雲端試算表中...";
+
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            function sendRequest(delay) {
+                fetch(gasUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8' // 繞過 CORS
+                    },
+                    body: JSON.stringify({
+                        classSeat: classSeat,
+                        name: name,
+                        ledColor: ledColor,
+                        isLit: isLit,
+                        reflection: reflection
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('雲端試算表未正確回應');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        syncStatus.className = "text-sm font-bold text-green-600 flex items-center justify-center";
+                        syncStatus.innerHTML = "✅ 資料已同步寫入雲端 Excel 試算表！";
+                        record.synced = true;
+                    } else {
+                        throw new Error(data.message || '寫入異常');
+                    }
+                })
+                .catch(error => {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(() => sendRequest(delay * 2), delay);
+                    } else {
+                        syncStatus.className = "text-sm font-bold text-red-500 flex items-center justify-center";
+                        syncStatus.innerHTML = `❌ 網路連線超時，成績已存於本機。請手動舉手向老師登記！`;
+                    }
+                })
+                .finally(() => {
+                    // 更新本地端歷史紀錄
+                    saveToHistory(record);
+                    document.getElementById('loadingSpinner').classList.add('hidden');
+                    document.getElementById('btnText').innerText = "🚀 傳送紙電路挑戰紀錄";
+                });
+            }
+
+            // 啟動請求
+            sendRequest(1000);
+        }
+
+        // 本地紀錄管理機制
+        function saveToHistory(record) {
+            let history = [];
+            try {
+                history = JSON.parse(safeStorage.get('quiz_history') || '[]');
+            } catch (e) {
+                history = [];
+            }
+            // 檢查是否重複，避免洗版
+            history.unshift(record);
+            safeStorage.set('quiz_history', JSON.stringify(history));
+            updateHistoryTable();
+        }
+
+        function updateHistoryTable() {
+            const tableBody = document.getElementById('historyTableBody');
+            let history = [];
+            try {
+                history = JSON.parse(safeStorage.get('quiz_history') || '[]');
+            } catch (e) {
+                history = [];
+            }
+
+            if (history.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">尚無上傳紀錄</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = history.map(item => {
+                const badge = item.synced 
+                    ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">已同步</span>`
+                    : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold font-mono">本機存</span>`;
+                return `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="py-2 text-slate-700 font-bold">${item.classSeat}</td>
+                        <td class="py-2 text-slate-800 font-semibold">${item.name}</td>
+                        <td class="py-2 text-slate-500 truncate max-w-[120px]">${item.isLit}</td>
+                        <td class="py-2 text-right">${badge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("確認清除此瀏覽器上的本機歷史備份嗎？（這不會影響已寫入雲端試算表的資料）")) {
+                safeStorage.set('quiz_history', '[]');
+                updateHistoryTable();
+            }
+        }
+
+        // 重新作答機制（幫下一位同學登記）
+        function restartQuiz() {
+            const form = document.getElementById('quizForm');
+            form.reset();
+            
+            // 恢復輸入與按鈕狀態
+            form.querySelectorAll('input, textarea').forEach(input => input.disabled = false);
+            document.getElementById('submitBtn').disabled = false;
+            
+            // 隱藏結果區
+            document.getElementById('resultModal').classList.add('hidden');
+            hideAlert();
+
+            // 更新預覽
+            updateCircuitPreview();
+
+            // 畫面回到最上方
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
