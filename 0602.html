@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 隨堂小測驗 🌟</title>
+    <!-- 載入 Tailwind CSS 提供現代且高質感的排版設計 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Canvas-Confetti 讓學生拿到滿分時有繽紛的灑花效果 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #eef2f3 0%, #e0eafc 100%);
+        }
+
+        /* 隱藏原生 Radio 按鈕，改用自訂卡片樣式 */
+        .custom-radio:checked + .radio-card {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -4px rgba(59, 130, 246, 0.1);
+            transform: scale(1.02);
+        }
+
+        .radio-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="min-height-screen py-10 px-4 flex flex-col items-center justify-center relative">
+
+    <!-- 背景裝飾小圖示 -->
+    <div class="absolute top-10 left-10 text-blue-300 opacity-20 text-6xl hidden md:block">📚</div>
+    <div class="absolute bottom-10 right-10 text-green-300 opacity-20 text-6xl hidden md:block">🧪</div>
+    <div class="absolute top-20 right-20 text-yellow-300 opacity-20 text-6xl hidden md:block">✏️</div>
+
+    <!-- 教師設定入口 (齒輪) -->
+    <div class="absolute top-4 right-4 z-50">
+        <button onclick="toggleTeacherPanel()" class="bg-white hover:bg-slate-100 text-slate-600 p-2.5 rounded-full shadow-md transition-all duration-200 focus:outline-none border border-slate-200 flex items-center justify-center">
+            <!-- 齒輪 SVG -->
+            <svg class="w-6 h-6 animate-[spin_8s_linear_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-xl bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative z-10">
+        
+        <!-- 卡片彩條頂部裝飾 -->
+        <div class="h-4 bg-gradient-to-r from-blue-400 via-indigo-400 to-green-400"></div>
+
+        <!-- 內容區 -->
+        <div class="p-6 md:p-8">
+            <!-- 標題 -->
+            <div class="text-center mb-8">
+                <span class="inline-block bg-blue-100 text-blue-600 font-bold px-4 py-1.5 rounded-full text-sm mb-2 tracking-wide">STUDY QUIZ</span>
+                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">📝 隨堂小挑戰賽</h1>
+                <p class="text-slate-500 mt-1.5">動動腦筋，看看今天能拿幾分吧！加油！</p>
+            </div>
+
+            <!-- 自訂警告訊息 (替代原生 alert) -->
+            <div id="alertBox" class="hidden mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-xl transition-all duration-300">
+                <div class="flex items-center">
+                    <span class="text-amber-500 mr-2 text-xl">⚠️</span>
+                    <p id="alertMsg" class="text-sm font-medium text-amber-800"></p>
+                </div>
+            </div>
+
+            <form id="quizForm" onsubmit="event.preventDefault();" class="space-y-6">
+                <!-- 欄位：學生姓名 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-blue-400">
+                    <label for="studentName" class="block text-slate-700 font-bold text-base mb-2.5 flex items-center">
+                        <span class="text-xl mr-2">👤</span> 你的名字：
+                    </label>
+                    <input type="text" id="studentName" required
+                           class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none text-slate-800 placeholder-slate-400 font-medium transition-colors"
+                           placeholder="請輸入你的姓名（例如：王小明）">
+                </div>
+
+                <!-- 題目 1 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h2 class="text-slate-800 font-bold text-base mb-4 flex items-start">
+                        <span class="bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2 mt-0.5 flex-shrink-0">1</span>
+                        <span>台灣最高的山是哪一座？</span>
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q1" value="阿里山" class="sr-only custom-radio" required>
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0 after:content-[''] after:w-2.5 after:h-2.5 after:bg-blue-500 after:rounded-full after:scale-0 custom-radio:checked+div:after:scale-100"></span>
+                                阿里山
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q1" value="玉山" class="sr-only custom-radio">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0"></span>
+                                玉山
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q1" value="陽明山" class="sr-only custom-radio">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0"></span>
+                                陽明山
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 題目 2 -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h2 class="text-slate-800 font-bold text-base mb-4 flex items-start">
+                        <span class="bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-black mr-2 mt-0.5 flex-shrink-0">2</span>
+                        <span>水的三態中，固態稱為什麼？</span>
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q2" value="冰" class="sr-only custom-radio" required>
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0"></span>
+                                冰
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q2" value="水蒸氣" class="sr-only custom-radio">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0"></span>
+                                水蒸氣
+                            </div>
+                        </label>
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="q2" value="雲" class="sr-only custom-radio">
+                            <div class="radio-card p-4 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center hover:border-slate-300">
+                                <span class="w-5 h-5 rounded-full border-2 border-slate-300 mr-3 flex items-center justify-center flex-shrink-0"></span>
+                                雲
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 提交按鈕 -->
+                <button type="button" onclick="handleSubmit()" id="submitBtn"
+                        class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-[0.98] flex items-center justify-center">
+                    <span id="btnText">🚀 送出並看成績</span>
+                    <!-- 載入中動畫 Spinner -->
+                    <svg id="loadingSpinner" class="hidden animate-spin ml-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- 結果顯示面板 (預設隱藏) -->
+            <div id="resultModal" class="hidden mt-8 border-2 border-dashed border-slate-200 p-6 rounded-2xl bg-slate-50 text-center animate-[fade-in_0.3s_ease-out]">
+                <div class="text-5xl mb-3" id="resultEmoji">💯</div>
+                <h3 class="text-2xl font-black text-slate-800" id="resultScore">得分：-- 分</h3>
+                <p class="text-slate-600 font-medium mt-1.5" id="resultMessage">太厲害了！你全部答對了！</p>
+                <div class="mt-4 p-3 bg-white rounded-xl inline-flex flex-col items-center border border-slate-100">
+                    <span id="syncStatus" class="text-sm font-bold text-amber-500 flex items-center">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping mr-2"></span>
+                        正在上傳成績到 Google 雲端...
+                    </span>
+                </div>
+                <button onclick="restartQuiz()" class="mt-5 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors block mx-auto underline">
+                    🔄 重新再測一次
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 教師設定面板 Drawer -->
+    <div id="teacherPanel" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-[scale-up_0.2s_ease-out]">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-extrabold text-slate-800 flex items-center">
+                        <span class="mr-2">⚙️</span> 教師控制台
+                    </h3>
+                    <button onclick="toggleTeacherPanel()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+                </div>
+
+                <!-- 警告訊息 -->
+                <div class="bg-blue-50 text-blue-800 p-3.5 rounded-xl text-xs mb-5 leading-relaxed">
+                    <strong>💡 教學指引：</strong>請將您的 Google Apps Script (GAS) 部署後的網頁應用程式 (Web App) 網址貼在下方，成績就會自動上傳到您的試算表。若未設定，測驗依然可在本機離線執行並於下方檢視。
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="gasUrlInput" class="block text-slate-700 font-bold text-sm mb-1.5">Google 試算表 GAS Web App 網址：</label>
+                        <input type="text" id="gasUrlInput" 
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 font-mono"
+                               placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+
+                    <!-- 本地成績暫存備用 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-slate-700 font-bold text-sm">💾 本地離線成績備份紀錄：</label>
+                            <button onclick="clearHistory()" class="text-xs text-red-500 hover:text-red-700 font-bold">清除紀錄</button>
+                        </div>
+                        <div class="border border-slate-100 rounded-xl bg-slate-50 p-3 max-h-48 overflow-y-auto">
+                            <table class="w-full text-xs text-left text-slate-600">
+                                <thead>
+                                    <tr class="border-b border-slate-200">
+                                        <th class="py-1">時間</th>
+                                        <th class="py-1">姓名</th>
+                                        <th class="py-1 text-center">分數</th>
+                                        <th class="py-1 text-right">雲端狀態</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <tr>
+                                        <td colspan="4" class="py-4 text-center text-slate-400">尚無作答紀錄</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <button onclick="toggleTeacherPanel()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors">
+                        關閉
+                    </button>
+                    <button onclick="saveTeacherSettings()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-md">
+                        儲存設定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁尾宣告 -->
+    <div class="mt-6 text-center text-xs text-slate-400 font-medium">
+        Made with ❤️ for automatic scoring | Version 1.0
+    </div>
+
+    <script>
+        // 頁面初始化
+        window.onload = function() {
+            // 從 LocalStorage 載入教師設定的 GAS 網址
+            const savedUrl = localStorage.getItem('gas_web_app_url');
+            if (savedUrl) {
+                document.getElementById('gasUrlInput').value = savedUrl;
+            }
+            updateHistoryTable();
+        };
+
+        // 自訂 Alert 功能（避免 iframe 被瀏覽器封鎖原生 alert）
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertBox');
+            const alertMsg = document.getElementById('alertMsg');
+            alertMsg.innerText = message;
+            alertBox.classList.remove('hidden');
+            // 自動滾動到最上方看警告
+            alertBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').classList.add('hidden');
+        }
+
+        // 開關教師設定面板
+        function toggleTeacherPanel() {
+            const panel = document.getElementById('teacherPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                updateHistoryTable();
+            }
+        }
+
+        // 儲存教師面板設定
+        function saveTeacherSettings() {
+            const urlInput = document.getElementById('gasUrlInput').value.trim();
+            localStorage.setItem('gas_web_app_url', urlInput);
+            toggleTeacherPanel();
+            
+            // 彈出成功提示
+            const originalBox = document.getElementById('alertBox');
+            originalBox.classList.remove('hidden');
+            originalBox.classList.replace('bg-amber-50', 'bg-green-50');
+            originalBox.classList.replace('border-amber-400', 'border-green-400');
+            document.getElementById('alertMsg').innerHTML = "<span class='text-green-800'>⚙️ 設定成功！成績會上傳到指定雲端。</span>";
+            setTimeout(() => {
+                originalBox.classList.add('hidden');
+                originalBox.classList.replace('bg-green-50', 'bg-amber-50');
+                originalBox.classList.replace('border-green-400', 'border-amber-400');
+            }, 3000);
+        }
+
+        // 處理測驗送出與計分
+        function handleSubmit() {
+            hideAlert();
+
+            const studentName = document.getElementById('studentName').value.trim();
+            
+            // 取得選擇的題目答案
+            const q1Checked = document.querySelector('input[name="q1"]:checked');
+            const q2Checked = document.querySelector('input[name="q2"]:checked');
+
+            // 1. 欄位驗證
+            if (!studentName) {
+                showAlert('別忘了填寫「學生姓名」喔！');
+                return;
+            }
+            if (!q1Checked) {
+                showAlert('第一題還沒有選答案喔！');
+                return;
+            }
+            if (!q2Checked) {
+                showAlert('第二題還沒有選答案喔！');
+                return;
+            }
+
+            // 2. 計分邏輯 (第一題正確答案：玉山，第二題正確答案：冰)
+            let score = 0;
+            let detail = [];
+
+            if (q1Checked.value === '玉山') {
+                score += 50;
+                detail.push("Q1 正確");
+            } else {
+                detail.push(`Q1 錯誤 (選了 ${q1Checked.value})`);
+            }
+
+            if (q2Checked.value === '冰') {
+                score += 50;
+                detail.push("Q2 正確");
+            } else {
+                detail.push(`Q2 錯誤 (選了 ${q2Checked.value})`);
+            }
+
+            // 3. 顯示結果面板
+            showResultPanel(studentName, score);
+
+            // 4. 上傳資料
+            uploadScore(studentName, score);
+        }
+
+        // 顯示結果與五彩碎紙效果
+        function showResultPanel(name, score) {
+            const form = document.getElementById('quizForm');
+            const resultModal = document.getElementById('resultModal');
+            const resultScore = document.getElementById('resultScore');
+            const resultEmoji = document.getElementById('resultEmoji');
+            const resultMessage = document.getElementById('resultMessage');
+
+            // 鎖定/隱藏主表單輸入
+            form.querySelectorAll('input').forEach(input => input.disabled = true);
+            document.getElementById('submitBtn').disabled = true;
+
+            // 依照分數顯示不同的加油台詞與表情
+            resultScore.innerText = `得分：${score} 分`;
+            if (score === 100) {
+                resultEmoji.innerText = "💯";
+                resultMessage.innerText = `太完美了，${name}！你是台灣地理與自然小達人！`;
+                // 滿分炫耀：大灑花效果
+                triggerConfetti(2);
+            } else if (score === 50) {
+                resultEmoji.innerText = "🌟";
+                resultMessage.innerText = `很棒的嘗試，${name}！答對了一半，再接再厲唷！`;
+                triggerConfetti(1);
+            } else {
+                resultEmoji.innerText = "💪";
+                resultMessage.innerText = `${name}，再加把勁！複習一下這兩題，下次一定能拿高分！`;
+            }
+
+            resultModal.classList.remove('hidden');
+            resultModal.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 五彩碎紙動態效果
+        function triggerConfetti(mode) {
+            if (typeof confetti === 'function') {
+                if (mode === 2) {
+                    // 強烈灑花
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                } else {
+                    // 輕微灑花
+                    confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
+                }
+            }
+        }
+
+        // 上傳分數到 Google Apps Script
+        function uploadScore(name, score) {
+            const syncStatus = document.getElementById('syncStatus');
+            const gasUrl = localStorage.getItem('gas_web_app_url');
+            const timestamp = new Date().toLocaleString('zh-TW');
+
+            // 建立一筆記錄準備存進本地備份
+            const record = {
+                time: timestamp,
+                name: name,
+                score: score,
+                synced: false
+            };
+
+            // 如果老師還沒設定 GAS 連結
+            if (!gasUrl) {
+                syncStatus.className = "text-sm font-bold text-amber-500 flex items-center justify-center";
+                syncStatus.innerHTML = "⚠️ 尚未設定 Google 雲端網址，成績已記錄在教師主機。";
+                
+                // 存入本地 LocalStorage
+                saveToHistory(record);
+                return;
+            }
+
+            // 若有設定，開始進行網路發送
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+            document.getElementById('btnText').innerText = "上傳中...";
+
+            // 使用 exponential backoff 進行重試與容錯處理
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            function sendRequest(delay) {
+                fetch(gasUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8' // GAS doPost 對於 text/plain 支援最佳且無 CORS 阻礙
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        score: score
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('伺服器未正確回應');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        syncStatus.className = "text-sm font-bold text-green-600 flex items-center justify-center";
+                        syncStatus.innerHTML = "✅ 成績已同步上傳至 Google 雲端試算表！";
+                        record.synced = true;
+                    } else {
+                        throw new Error(data.message || '雲端資料寫入異常');
+                    }
+                })
+                .catch(error => {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(() => sendRequest(delay * 2), delay);
+                    } else {
+                        syncStatus.className = "text-sm font-bold text-red-500 flex items-center justify-center";
+                        syncStatus.innerHTML = `❌ 網路同步失敗，請舉手請老師手動登記！`;
+                    }
+                })
+                .finally(() => {
+                    // 更新本地端歷史紀錄，不管成功失敗都存起來防止漏記
+                    saveToHistory(record);
+                    document.getElementById('loadingSpinner').classList.add('hidden');
+                    document.getElementById('btnText').innerText = "🚀 送出並看成績";
+                });
+            }
+
+            // 首發請求 (1秒延遲)
+            sendRequest(1000);
+        }
+
+        // 本地紀錄管理機制 (防斷網神隊友)
+        function saveToHistory(record) {
+            let history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            history.unshift(record); // 最新一筆放最前面
+            localStorage.setItem('quiz_history', JSON.stringify(history));
+            updateHistoryTable();
+        }
+
+        function updateHistoryTable() {
+            const tableBody = document.getElementById('historyTableBody');
+            const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+
+            if (history.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">尚無作答紀錄</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = history.map(item => {
+                const badge = item.synced 
+                    ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">成功</span>`
+                    : `<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">待補</span>`;
+                return `
+                    <tr class="border-b border-slate-100 hover:bg-slate-100 transition-colors">
+                        <td class="py-2 text-slate-500 font-mono">${item.time.split(' ')[1] || item.time}</td>
+                        <td class="py-2 text-slate-800 font-bold">${item.name}</td>
+                        <td class="py-2 text-center text-blue-600 font-extrabold">${item.score}</td>
+                        <td class="py-2 text-right">${badge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("您確定要清除本地瀏覽器的所有歷史成績紀錄嗎？（清除後無法復原）")) {
+                localStorage.removeItem('quiz_history');
+                updateHistoryTable();
+            }
+        }
+
+        // 重新作答機制
+        function restartQuiz() {
+            const form = document.getElementById('quizForm');
+            form.reset();
+            
+            // 恢復表單與按鈕狀態
+            form.querySelectorAll('input').forEach(input => input.disabled = false);
+            document.getElementById('submitBtn').disabled = false;
+            
+            // 隱藏結果區
+            document.getElementById('resultModal').classList.add('hidden');
+            hideAlert();
+
+            // 畫面回到最上方
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
